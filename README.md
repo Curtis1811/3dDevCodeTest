@@ -6,6 +6,8 @@ Use the Sliders to Move the camera.
 You can also Left-click and hold to rotate around the object while dragging the mouse 
 You can toggle the mouse Rotate feature on and off. 
 
+To the right side there are controls for new Fersnel Shader Adding Highlighting to the Chair.
+
 Download the folder and naviate to the **Build** Folder. There lies the .exe
 
 Alt-F4 to close.
