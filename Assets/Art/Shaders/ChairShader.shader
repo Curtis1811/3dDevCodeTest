@@ -4,13 +4,20 @@ Shader "Custom/ChairShader"
     {
         _Color ("Color", Color) = (1,1,1,1)
         _MainTex ("Albedo (RGB)", 2D) = "white" {}
-        _Glossiness ("Smoothness", Range(0,1)) = 0.5
-        _Metallic ("Metallic", Range(0,1)) = 0.0
-        
+        _Glossiness ("Smoothness", Range(0,1)) = 0.3
+        _Metallic ("Metallic", Range(0,1)) = 0.5
+        _Saturation ("Saturation", Range(0,4)) = 2
+
+        //Here we are creating some rim loght shaders
+        _RimColor("RimColor",Color) = (0.0485938,0.490566,0.12692,1)
+        _RimPower("RimPower",Range(0,1)) = 1
+        _RimWidth("RimWidth",Range(0,1)) = 0.6
+       [Normal]  _BumpMap ("Normal Map", 2D) = "bump" { }
+       [Normal]  _DetailNormalMap ("Normal Map", 2D) = "bump" { }
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags { "RenderType"="Fade"}
         LOD 200
 
         CGPROGRAM
@@ -21,15 +28,21 @@ Shader "Custom/ChairShader"
         #pragma target 3.0
 
         sampler2D _MainTex;
+        half _Glossiness;
+        half _Metallic;
+        half _Saturation;
+        fixed4 _Color;
+        float4 _RimColor;
+        float _RimPower;
+        float _RimWidth;
 
         struct Input
         {
             float2 uv_MainTex;
+            float3 viewDir;
         };
 
-        half _Glossiness;
-        half _Metallic;
-        fixed4 _Color;
+       
 
         // Add instancing support for this shader. You need to check 'Enable Instancing' on materials that use the shader.
         // See https://docs.unity3d.com/Manual/GPUInstancing.html for more information about instancing.
@@ -41,12 +54,17 @@ Shader "Custom/ChairShader"
         void surf (Input IN, inout SurfaceOutputStandard o)
         {
             // Albedo comes from a texture tinted by color
+            //o._Color = float3(0.5764706,0.509804,0.509804);
             fixed4 c = tex2D (_MainTex, IN.uv_MainTex) * _Color;
-            o.Albedo = c.rgb;
+            o.Albedo = c.rgb;        
+
             // Metallic and smoothness come from slider variables
             o.Metallic = _Metallic;
             o.Smoothness = _Glossiness;
             o.Alpha = c.a;
+
+            float rim = max(0.0, _RimWidth - saturate(dot(o.Normal, normalize(IN.viewDir))));
+            o.Emission = _RimColor.rgb * pow(rim ,_RimPower);
         }
         ENDCG
     }

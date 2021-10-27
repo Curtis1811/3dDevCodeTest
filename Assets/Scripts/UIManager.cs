@@ -5,20 +5,32 @@ using UnityEditor;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Threading.Tasks;
+using TMPro;
+using System;
+using UnityEngine.Events;
+
+[Serializable]
+public class ColorEvent:UnityEvent<Color>{}
+
 public class UIManager : MonoBehaviour
 {
     #region  UI Elements
     [SerializeField] private Camera cam;
     [SerializeField] private Slider Zoom;
     [SerializeField] private List<Slider> RotationSlider;
+    [SerializeField] private List<Slider> fersnelSliders;
     [SerializeField] private Toggle toggle;
     [SerializeField] private Toggle MouseRotation;
     [SerializeField] private Dropdown dropdown;
+  
     #endregion
     
     #region Complext Variables
     [SerializeField] private List<Shader> ShaderList;
     [SerializeField] List<Renderer> rend;
+    [SerializeField] RectTransform rect;
+     [SerializeField] Image ColorPickerImage;
+    [SerializeField] Texture2D ColorTexture;
     #endregion  
 
     #region  Game Objects
@@ -40,6 +52,9 @@ public class UIManager : MonoBehaviour
     bool canRotate;
     #endregion
 
+    #region Events
+    public ColorEvent onColorSelect;
+    #endregion
     [SerializeField] float minsize;
     [SerializeField] float maxsize;
 
@@ -52,7 +67,8 @@ public class UIManager : MonoBehaviour
         minsize = 0.2f;
         maxsize = 3;
         canRotate = true;
-
+        ColorTexture = ColorPickerImage.mainTexture as Texture2D;
+        
         Zoom.maxValue = maxsize;
         Zoom.minValue = minsize;
         
@@ -74,14 +90,15 @@ public class UIManager : MonoBehaviour
         dropdown.onValueChanged.AddListener(delegate{
             DropDownChange(dropdown);
         });
-
         rotationSliderDelegate(RotationSlider);
       
     }
 
     private void Update() {
         //here we are checking if the mouse pointer is over the game. If So we dont want to interact with the game using the Mouse so we just return instantly
-       
+        fersnelSliderFunc(fersnelSliders);
+        //fersnelRendererFunc();
+        ColorPicker();
         if(EventSystem.current.IsPointerOverGameObject())
             return;
 
@@ -90,7 +107,7 @@ public class UIManager : MonoBehaviour
         
     }
 
-  #region  MouseRotation
+    #region  MouseRotation
     public void Rotation()
     {
         
@@ -111,7 +128,7 @@ public class UIManager : MonoBehaviour
     }
     #endregion
  
- #region Buttons
+    #region Buttons
  
     public void ZoomFunc(){
         cam.orthographicSize = Zoom.value;   
@@ -219,10 +236,48 @@ public class UIManager : MonoBehaviour
         cam.transform.localEulerAngles = new Vector3 (0,0,0); 
         cam.orthographicSize = 3;
     }
+    #endregion
 
-    
+    #region Fersnel Sliders
 
+    public void fersnelSliderFunc(List<Slider> slider){
+        for (var i = 0; i < slider.Count; i++)
+        {
+            rend[i].material.SetFloat("_RimPower",slider[0].value);
+            rend[i].material.SetFloat("_RimWidth",slider[1].value);
+        }
+    }
+    public void fersnelRendererFunc(Color color){
+        //Debug.Log(Running);
+        for (var i = 0; i < rend.Count; i++)
+            rend[i].material.SetColor("_RimColor",color);
     
+    }
+
+    public void ColorPicker()
+    {
+        Vector2 delta;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(rect,Input.mousePosition,null,out delta);
+
+        float width = rect.rect.width;
+        float height = rect.rect.height;
+
+        delta += new Vector2(width * 0.5f, height*0.5f);
+        float x = Mathf.Clamp(delta.x/width, 0,1);
+        float y = Mathf.Clamp(delta.y/height, 0,1);
+        
+        int yy = Mathf.RoundToInt(y * ColorTexture.height);
+        int xx = Mathf.RoundToInt(x * ColorTexture.width);
+        
+        Color color = ColorTexture.GetPixel(xx,yy);
+
+        if(Input.GetMouseButtonDown(0) && EventSystem.current.IsPointerOverGameObject()){
+            onColorSelect?.Invoke(color);
+        }
+    }
+
+
 
     #endregion
+
 }
